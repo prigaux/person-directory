@@ -422,7 +422,7 @@ public class RequestAttributeSourceFilter extends GenericFilterBean {
     protected void addRequestHeaders(final HttpServletRequest httpServletRequest, final Map<String, List<Object>> attributes) {
         for (final Map.Entry<String, Set<String>> headerAttributeEntry : this.headerAttributeMapping.entrySet()) {
             final String headerName = headerAttributeEntry.getKey();
-            final String value = httpServletRequest.getHeader(headerName);
+            final String value = safe_interpret_as_UTF8(httpServletRequest.getHeader(headerName));
             
             if (value != null) {
                 for (final String attributeName : headerAttributeEntry.getValue()) {
@@ -430,6 +430,19 @@ public class RequestAttributeSourceFilter extends GenericFilterBean {
                 }
             }
         }
+    }
+
+    /* https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPAttributeAccess#NativeSPAttributeAccess-Tool-SpecificExamples for java says: */
+    /* Shibboleth attributes are by default UTF-8 encoded. 
+       However, depending on the servlet contaner configuration they are interpreted as ISO-8859-1 values. 
+       This causes problems with non-ASCII characters. */
+    private String safe_interpret_as_UTF8(final String value) {
+	if (value == null) return null;
+	try {
+	    return new String(value.getBytes("ISO-8859-1"), "UTF-8");
+	} catch (java.io.UnsupportedEncodingException e) {
+	    return value;
+	}
     }
 
     /* multiple attribute values are separated by a semicolon, and semicolons in values are escaped with a backslash */
